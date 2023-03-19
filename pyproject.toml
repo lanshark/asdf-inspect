@@ -1,0 +1,66 @@
+[build-system]
+requires = ['poetry-core']
+build-backend = 'poetry.core.masonry.api'
+
+[tool.poetry]
+name = 'asdf-inspect'
+version = '0.1.0'
+description = 'An auxiliary library for the virtualenv-asdf and tox-asdf-redux plugins'
+license = 'MIT'
+authors = ['Scott Sharkey <me@undef.im>']
+readme = 'README.md'
+homepage = 'https://github.com/lanshark/asdf-inspect'
+repository = 'https://github.com/lanshark/asdf-inspect'
+keywords = ['asdf']
+classifiers = [
+    'Development Status :: 4 - Beta',
+    'Intended Audience :: Developers',
+    'Topic :: Software Development :: Libraries',
+    'Topic :: Utilities',
+]
+packages = [{include = 'asdf_inspect', from = 'src'}]
+
+[tool.poetry.dependencies]
+python = '^3.7'
+
+[tool.isort]
+lines_after_imports = 2
+multi_line_output = 5
+include_trailing_comma = true
+use_parentheses = true
+sections = ['FUTURE', 'STDLIB', 'THIRDPARTY', 'FIRSTPARTY', 'TESTS', 'LOCALFOLDER']
+known_first_party = ['asdf_inspect']
+known_tests = ['tests']
+
+[tool.pytest.ini_options]
+minversion = '7.0'
+testpaths = ['tests']
+
+[tool.tox]
+legacy_tox_ini = '''
+[tox]
+envlist =
+    py37
+    py38
+    py39
+    py310
+    py311
+    flake8
+    isort
+isolated_build = true
+
+[testenv]
+deps =
+    pytest >= 7.0
+commands = pytest {posargs}
+
+[testenv:flake8]
+skip_install = true
+deps = flake8
+commands = flake8 {posargs}
+
+[testenv:isort]
+skip_install = true
+deps = isort
+commands = isort {posargs:. -c}
+'''
