@@ -62,3 +62,33 @@ def test_parse_error(string_spec):
 ])
 def test_to_dict(string_spec, expected):
     assert ASDFPythonSpec.from_string_spec(string_spec).to_dict() == expected
+
+
+def test_parse_error_empty():
+    with pytest.raises(SpecParseError, match='^invalid spec: empty string$'):
+        ASDFPythonSpec.from_string_spec('')
+
+
+def test_parse_error_message_includes_spec():
+    with pytest.raises(SpecParseError, match=r"^invalid spec: '3\.x'$"):
+        ASDFPythonSpec.from_string_spec('3.x')
+
+
+def test_unsupported_message_includes_spec():
+    spec = ASDFPythonSpec.from_string_spec('pypy3.10-7.3.17')
+    message = (
+        r"^unsupported implementation: 'pypy3\.10-7\.3\.17' "
+        r"\(only CPython is currently supported\)$")
+
+    with pytest.raises(UnsupportedImplementation, match=message):
+        spec.is_supported(raise_exception=True)
+
+
+@pytest.mark.parametrize('string_spec', [
+    '10.0', '10.1.2', '12.0a1', '10.0-dev',
+])
+def test_multi_digit_major(string_spec):
+    spec = ASDFPythonSpec.from_string_spec(string_spec)
+
+    assert spec.implementation == Implementation.CPYTHON
+    assert spec.version == string_spec
