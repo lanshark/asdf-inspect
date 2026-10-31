@@ -3,7 +3,7 @@ from __future__ import annotations
 import operator
 import re
 from functools import partial
-from typing import Any, Optional, Tuple
+from typing import Any
 
 from .exceptions import VersionParseError
 
@@ -59,8 +59,8 @@ class Version:
 
     def __init__(
         self,
-        base: Tuple[int, ...],
-        pre: Optional[Tuple[str, int]] = None,
+        base: tuple[int, ...],
+        pre: tuple[str, int] | None = None,
         dev: bool = False,
     ) -> None:
         self._base = base
@@ -72,7 +72,7 @@ class Version:
     dev = Readonly()
 
     @Cached
-    def _base_short(self) -> Tuple:
+    def _base_short(self) -> tuple[int, ...]:
         base = self._base
         for offset in range(len(base) - 1, -1, -1):
             if base[offset]:
@@ -95,7 +95,7 @@ class Version:
     @Cached
     def _comparable(
         self,
-    ) -> Tuple[Tuple[int, ...], int, int, Optional[Tuple[str, int]]]:
+    ) -> tuple[tuple[int, ...], int, int, tuple[str, int] | None]:
         return (
             self._base_short,
             -1 if self._dev else 0,
@@ -104,7 +104,7 @@ class Version:
         )
 
     @classmethod
-    def from_string_version(cls, string_version: str) -> Optional[Version]:
+    def from_string_version(cls, string_version: str) -> Version | None:
         match = VERSION_REGEX.fullmatch(string_version)
         if not match:
             raise VersionParseError(string_version)

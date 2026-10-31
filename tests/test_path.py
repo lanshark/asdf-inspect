@@ -40,26 +40,26 @@ class BaseTestGetASDFRoot(BaseTestClass):
 class TestGetASDFRootFromEnvironment(BaseTestGetASDFRoot):
 
     @pytest.fixture
-    def asdf_root(tmp_path):
+    def asdf_root(self, tmp_path):
         return tmp_path / '.asdf'
 
     @pytest.fixture(autouse=True)
-    def setup(monkeypatch, asdf_root):
+    def setup(self, monkeypatch, asdf_root):
         monkeypatch.setenv('ASDF_ROOT', str(asdf_root))
 
 
 class TestGetASDFRootFallback(BaseTestGetASDFRoot):
 
     @pytest.fixture
-    def asdf_root(fake_home):
+    def asdf_root(self, fake_home):
         return fake_home / '.asdf'
 
     @pytest.fixture
-    def fake_home(tmp_path):
+    def fake_home(self, tmp_path):
         return tmp_path / 'home' / 'user'
 
     @pytest.fixture(autouse=True)
-    def setup(monkeypatch, fake_home):
+    def setup(self, monkeypatch, fake_home):
         fake_home.mkdir(parents=True)
         monkeypatch.setattr('pathlib.Path.home', lambda: fake_home)
         monkeypatch.delenv('ASDF_ROOT', raising=False)
@@ -68,11 +68,11 @@ class TestGetASDFRootFallback(BaseTestGetASDFRoot):
 class TestGetASDFVersionsDirectory(BaseTestClass):
 
     @pytest.fixture
-    def versions_dir(asdf_root):
+    def versions_dir(self, asdf_root):
         return asdf_root / 'installs/python'
 
     @pytest.fixture(autouse=True)
-    def setup(monkeypatch, asdf_root):
+    def setup(self, monkeypatch, asdf_root):
         monkeypatch.setattr(
             'asdf_inspect.path.get_asdf_root', lambda: asdf_root)
 
@@ -99,16 +99,16 @@ class TestGetASDFVersionsDirectory(BaseTestClass):
 class TestGetASDFPythonExecutablePath(BaseTestClass):
 
     @pytest.fixture
-    def version_dir(asdf_root):
+    def version_dir(self, asdf_root):
         # SAS - use get_versions_dir - make that a common lib fn?
         return asdf_root / 'installs/python' / '3.10.7'
 
     @pytest.fixture
-    def exec_path(version_dir):
+    def exec_path(self, version_dir):
         return version_dir / 'bin' / 'python'
 
     @pytest.fixture(autouse=True)
-    def setup(exec_path):
+    def setup(self, exec_path):
         exec_path.parent.mkdir(parents=True)
 
     def test_ok(version_dir, exec_path):

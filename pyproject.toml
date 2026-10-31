@@ -1,27 +1,43 @@
 [build-system]
-requires = ['poetry-core']
-build-backend = 'poetry.core.masonry.api'
+requires = ['uv_build>=0.9,<0.14']
+build-backend = 'uv_build'
 
-[tool.poetry]
+[project]
 name = 'asdf-inspect'
 version = '0.1.0'
 description = 'An auxiliary library for the virtualenv-asdf and tox-asdf-redux plugins'
 license = 'MIT'
-authors = ['Scott Sharkey <me@undef.im>']
+license-files = ['LICENSE']
+authors = [{name = 'Scott Sharkey', email = 'me@undef.im'}]
 readme = 'README.md'
-homepage = 'https://github.com/lanshark/asdf-inspect'
-repository = 'https://github.com/lanshark/asdf-inspect'
+requires-python = '>=3.11'
 keywords = ['asdf']
 classifiers = [
     'Development Status :: 4 - Beta',
     'Intended Audience :: Developers',
+    'Programming Language :: Python :: 3',
+    'Programming Language :: Python :: 3 :: Only',
+    'Programming Language :: Python :: 3.11',
+    'Programming Language :: Python :: 3.12',
+    'Programming Language :: Python :: 3.13',
+    'Programming Language :: Python :: 3.14',
+    'Programming Language :: Python :: 3.15',
     'Topic :: Software Development :: Libraries',
     'Topic :: Utilities',
 ]
-packages = [{include = 'asdf_inspect', from = 'src'}]
 
-[tool.poetry.dependencies]
-python = '^3.7'
+[project.urls]
+Homepage = 'https://github.com/lanshark/asdf-inspect'
+Repository = 'https://github.com/lanshark/asdf-inspect'
+
+[dependency-groups]
+dev = [
+    'pytest>=8',
+    'flake8>=7',
+    'isort>=6',
+    'tox>=4.22',
+    'tox-uv>=1.11',
+]
 
 [tool.isort]
 lines_after_imports = 2
@@ -33,34 +49,22 @@ known_first_party = ['asdf_inspect']
 known_tests = ['tests']
 
 [tool.pytest.ini_options]
-minversion = '7.0'
+minversion = '8.0'
 testpaths = ['tests']
 
 [tool.tox]
-legacy_tox_ini = '''
-[tox]
-envlist =
-    py37
-    py38
-    py39
-    py310
-    py311
-    flake8
-    isort
-isolated_build = true
+requires = ['tox>=4.22', 'tox-uv>=1.11']
+env_list = ['3.11', '3.12', '3.13', '3.14', '3.15', 'flake8', 'isort']
 
-[testenv]
-deps =
-    pytest >= 7.0
-commands = pytest {posargs}
+[tool.tox.env_run_base]
+runner = 'uv-venv-lock-runner'
+dependency_groups = ['dev']
+commands = [['pytest', {replace = 'posargs', extend = true}]]
 
-[testenv:flake8]
+[tool.tox.env.flake8]
 skip_install = true
-deps = flake8
-commands = flake8 {posargs}
+commands = [['flake8', {replace = 'posargs', extend = true}]]
 
-[testenv:isort]
+[tool.tox.env.isort]
 skip_install = true
-deps = isort
-commands = isort {posargs:. -c}
-'''
+commands = [['isort', {replace = 'posargs', default = ['.', '-c'], extend = true}]]
