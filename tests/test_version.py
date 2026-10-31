@@ -113,3 +113,116 @@ def test_contains(str_v1, str_v2, expected):
     result = v1 in v2
 
     assert result is expected
+
+
+@pytest.mark.parametrize('string_version', [
+    '',
+    '3',
+    '3.',
+    'abc',
+    '3.12.1.4',
+    '3.12a',
+    '3.12c1',
+    '3.12-rc1',
+    ' 3.12',
+])
+def test_parse_error_invalid(string_version):
+    with pytest.raises(VersionParseError):
+        Version.from_string_version(string_version)
+
+
+@pytest.mark.parametrize('string_version,base,pre,dev', [
+    ('3.12', (3, 12), None, False),
+    ('3.12.1', (3, 12, 1), None, False),
+    ('3.13.0a4', (3, 13, 0), ('a', 4), False),
+    ('3.13.0b1', (3, 13, 0), ('b', 1), False),
+    ('3.13.0rc2', (3, 13, 0), ('rc', 2), False),
+    ('3.14-dev', (3, 14), None, True),
+])
+def test_parse_fields(string_version, base, pre, dev):
+    version = Version.from_string_version(string_version)
+
+    assert version.base == base
+    assert version.pre == pre
+    assert version.dev is dev
+
+
+@pytest.mark.parametrize('string_version', [
+    '3.12', '3.12.0', '3.12.1', '3.13.0a4', '3.13.0rc2', '3.14-dev',
+])
+def test_str_round_trip(string_version):
+    version = Version.from_string_version(string_version)
+
+    assert str(version) == string_version
+    assert repr(version) == f'Version {string_version}'
+
+
+@pytest.mark.parametrize('str_v1,str_v2', [
+    ('2.0', '2.0.0'),
+    ('0.0', '0.0.0'),
+])
+def test_hash_ignores_trailing_zeros(str_v1, str_v2):
+    v1 = Version.from_string_version(str_v1)
+    v2 = Version.from_string_version(str_v2)
+
+    assert hash(v1) == hash(v2)
+    assert len({v1, v2}) == 1
+
+
+@pytest.mark.parametrize('str_v1,str_v2', [
+    ('2.0', '2.0a1'),
+    ('2.0', '2.0-dev'),
+    ('2.0a1', '2.0b1'),
+])
+def test_hash_differs(str_v1, str_v2):
+    v1 = Version.from_string_version(str_v1)
+    v2 = Version.from_string_version(str_v2)
+
+    assert len({v1, v2}) == 2
+
+
+@pytest.mark.parametrize('other', ['3.12', (3, 12), 3.12, None])
+def test_eq_ne_non_version(other):
+    version = Version.from_string_version('3.12')
+
+    assert (version == other) is False
+    assert (version != other) is True
+
+
+@pytest.mark.parametrize('op', [
+    lambda a, b: a < b,
+    lambda a, b: a <= b,
+    lambda a, b: a > b,
+    lambda a, b: a >= b,
+])
+def test_ordering_non_version_raises(op):
+    version = Version.from_string_version('3.12')
+
+    with pytest.raises(TypeError):
+        op(version, '3.12')
+
+
+@pytest.mark.parametrize('item', ['3.12.1', (3, 12, 1), None])
+def test_contains_non_version(item):
+    version = Version.from_string_version('3.12')
+
+    assert (item in version) is False
+
+
+def test_sorting():
+    string_versions = [
+        '3.12.1', '3.12-dev', '3.12.0rc1', '3.12.0a2', '3.11.9',
+        '3.12.0b1', '3.12.0a10', '3.12.0',
+    ]
+    versions = sorted(map(Version.from_string_version, string_versions))
+
+    assert list(map(str, versions)) == [
+        '3.11.9', '3.12-dev', '3.12.0a2', '3.12.0a10', '3.12.0b1',
+        '3.12.0rc1', '3.12.0', '3.12.1',
+    ]
+
+
+def test_descriptors_on_class():
+    assert Version.base is Version.__dict__['base']
+    assert Version._hash is Version.__dict__['_hash']
+    assert Version.__eq__ is Version.__dict__['__eq__']

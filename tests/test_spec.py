@@ -1,6 +1,6 @@
 import pytest
 
-from asdf_inspect.exceptions import UnsupportedImplementation
+from asdf_inspect.exceptions import SpecParseError, UnsupportedImplementation
 from asdf_inspect.spec import ASDFPythonSpec, Implementation
 
 from tests.testlib import spec_fixture
@@ -40,3 +40,25 @@ def test_is_not_supported_raise_exception():
 
     with pytest.raises(UnsupportedImplementation):
         spec.is_supported(raise_exception=True)
+
+
+@pytest.mark.parametrize('string_spec', ['3.x', '3.12.1.4', '3.12foo'])
+def test_parse_error(string_spec):
+    with pytest.raises(SpecParseError):
+        ASDFPythonSpec.from_string_spec(string_spec)
+
+
+@pytest.mark.parametrize('string_spec,expected', [
+    ('3.12.1', {
+        'string_spec': '3.12.1',
+        'implementation': 'cpython',
+        'version': '3.12.1',
+    }),
+    ('pypy3.10-7.3.17', {
+        'string_spec': 'pypy3.10-7.3.17',
+        'implementation': 'unsupported',
+        'version': None,
+    }),
+])
+def test_to_dict(string_spec, expected):
+    assert ASDFPythonSpec.from_string_spec(string_spec).to_dict() == expected

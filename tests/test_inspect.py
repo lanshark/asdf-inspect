@@ -1,7 +1,9 @@
+import logging
+
 import pytest
 
 from asdf_inspect import find_asdf_python_executable
-from asdf_inspect.exceptions import UnsupportedImplementation
+from asdf_inspect.exceptions import SpecParseError, UnsupportedImplementation
 from asdf_inspect.spec import ASDFPythonSpec
 
 
@@ -41,3 +43,47 @@ class TestFindASDFPythonExecutable:
     def test_unsupported(self):
         with pytest.raises(UnsupportedImplementation):
             find_asdf_python_executable('fakepython-3.7')
+
+    @pytest.mark.parametrize('spec', [None, 3.12, b'3.12'])
+    def test_invalid_spec_type(self, spec):
+        with pytest.raises(TypeError, match='unexpected spec type'):
+            find_asdf_python_executable(spec)
+
+    def test_invalid_spec(self):
+        with pytest.raises(SpecParseError):
+            find_asdf_python_executable('3.x')
+
+    def test_no_versions_installed(self):
+        assert find_asdf_python_executable('3.12') is None
+
+    def test_skips_unparsable_and_unsupported(self, caplog):
+        self.prepare_versions('3.12.1', 'pypy3.10-7.3.17', '3.x-broken')
+
+        with caplog.at_level(logging.WARNING, logger='asdf_inspect.inspect'):
+            result = find_asdf_python_executable('3.12')
+
+        assert result == self.versions_dir / '3.12.1' / 'bin' / 'python'
+        assert len(caplog.records) == 2
+
+    def test_prerelease_not_matched_by_final_spec(self):
+        self.prepare_versions('3.13.0rc2')
+
+        assert find_asdf_python_executable('3.13') is None
+
+    def test_prerelease_matched_exactly(self):
+        self.prepare_versions('3.13.0rc1', '3.13.0rc2', '3.13.0')
+
+        assert find_asdf_python_executable('3.13.0rc2') == (
+            self.versions_dir / '3.13.0rc2' / 'bin' / 'python')
+
+    def test_final_preferred_over_prerelease(self):
+        self.prepare_versions('3.13.0rc2', '3.13.0', '3.13.1')
+
+        assert find_asdf_python_executable('3.13') == (
+            self.versions_dir / '3.13.1' / 'bin' / 'python')
+
+    def test_dev(self):
+        self.prepare_versions('3.14-dev', '3.14.0')
+
+        assert find_asdf_python_executable('3.14-dev') == (
+            self.versions_dir / '3.14-dev' / 'bin' / 'python')
