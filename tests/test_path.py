@@ -37,7 +37,7 @@ class BaseTestGetASDFRoot(BaseTestClass):
             get_asdf_root()
 
 
-class TestGetASDFRootFromEnvironment(BaseTestGetASDFRoot):
+class TestGetASDFRootFromDataDir(BaseTestGetASDFRoot):
 
     @pytest.fixture
     def asdf_root(self, tmp_path):
@@ -45,6 +45,19 @@ class TestGetASDFRootFromEnvironment(BaseTestGetASDFRoot):
 
     @pytest.fixture(autouse=True)
     def setup(self, monkeypatch, asdf_root):
+        monkeypatch.setenv('ASDF_DATA_DIR', str(asdf_root))
+        monkeypatch.delenv('ASDF_ROOT', raising=False)
+
+
+class TestGetASDFRootFromLegacyRoot(BaseTestGetASDFRoot):
+
+    @pytest.fixture
+    def asdf_root(self, tmp_path):
+        return tmp_path / '.asdf'
+
+    @pytest.fixture(autouse=True)
+    def setup(self, monkeypatch, asdf_root):
+        monkeypatch.delenv('ASDF_DATA_DIR', raising=False)
         monkeypatch.setenv('ASDF_ROOT', str(asdf_root))
 
 
@@ -62,7 +75,61 @@ class TestGetASDFRootFallback(BaseTestGetASDFRoot):
     def setup(self, monkeypatch, fake_home):
         fake_home.mkdir(parents=True)
         monkeypatch.setattr('pathlib.Path.home', lambda: fake_home)
+        monkeypatch.delenv('ASDF_DATA_DIR', raising=False)
         monkeypatch.delenv('ASDF_ROOT', raising=False)
+
+
+class TestGetASDFRootResolution:
+
+    @pytest.fixture(autouse=True)
+    def setup(self, monkeypatch, tmp_path):
+        self.home = tmp_path / 'home'
+        (self.home / '.asdf').mkdir(parents=True)
+        monkeypatch.setattr('pathlib.Path.home', lambda: self.home)
+        monkeypatch.setenv('HOME', str(self.home))
+        monkeypatch.delenv('ASDF_DATA_DIR', raising=False)
+        monkeypatch.delenv('ASDF_ROOT', raising=False)
+        self.data_dir = tmp_path / 'data'
+        self.data_dir.mkdir()
+        self.legacy_dir = tmp_path / 'legacy'
+        self.legacy_dir.mkdir()
+
+    def test_data_dir_takes_precedence(self, monkeypatch):
+        monkeypatch.setenv('ASDF_DATA_DIR', str(self.data_dir))
+        monkeypatch.setenv('ASDF_ROOT', str(self.legacy_dir))
+
+        assert get_asdf_root() == self.data_dir
+
+    def test_empty_data_dir_falls_back_to_legacy(self, monkeypatch):
+        monkeypatch.setenv('ASDF_DATA_DIR', '')
+        monkeypatch.setenv('ASDF_ROOT', str(self.legacy_dir))
+
+        assert get_asdf_root() == self.legacy_dir
+
+    def test_empty_values_fall_back_to_home(self, monkeypatch):
+        monkeypatch.setenv('ASDF_DATA_DIR', '')
+        monkeypatch.setenv('ASDF_ROOT', '')
+
+        assert get_asdf_root() == self.home / '.asdf'
+
+    def test_user_expansion(self, monkeypatch):
+        monkeypatch.setenv('ASDF_DATA_DIR', '~/.asdf')
+
+        assert get_asdf_root() == (self.home / '.asdf').resolve()
+
+    def test_relative_path_resolved(self, monkeypatch, tmp_path):
+        monkeypatch.chdir(tmp_path)
+        monkeypatch.setenv('ASDF_DATA_DIR', 'data')
+
+        assert get_asdf_root() == self.data_dir.resolve()
+
+    def test_no_stdout_output(self, monkeypatch, capsys):
+        monkeypatch.setenv('ASDF_DATA_DIR', str(self.data_dir))
+        (self.data_dir / 'installs/python').mkdir(parents=True)
+
+        get_asdf_versions_directory()
+
+        assert capsys.readouterr() == ('', '')
 
 
 class TestGetASDFVersionsDirectory(BaseTestClass):

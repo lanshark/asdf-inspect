@@ -9,19 +9,26 @@ from .exceptions import VersionParseError
 
 
 VERSION_PATTERN = (
-    r'(?P<base>\d(?:\.\d+){1,2})(?:(?P<pre>(?:a|b|rc)\d+)?|-(?P<dev>dev))')
+    r'(?P<base>\d+(?:\.\d+){1,2})(?:(?P<pre>(?:a|b|rc)\d+)?|-(?P<dev>dev))')
 VERSION_REGEX = re.compile(VERSION_PATTERN)
 
 
 class Readonly:
 
     def __set_name__(self, owner, name):
+        self.public_name = name
         self.private_name = f'_{name}'
 
     def __get__(self, instance, owner=None):
         if instance is None:
             return self
         return getattr(instance, self.private_name)
+
+    def __set__(self, instance, value):
+        raise AttributeError(f'{self.public_name!r} is read-only')
+
+    def __delete__(self, instance):
+        raise AttributeError(f'{self.public_name!r} is read-only')
 
 
 class Cached:
@@ -104,10 +111,10 @@ class Version:
         )
 
     @classmethod
-    def from_string_version(cls, string_version: str) -> Version | None:
+    def from_string_version(cls, string_version: str) -> Version:
         match = VERSION_REGEX.fullmatch(string_version)
         if not match:
-            raise VersionParseError(string_version)
+            raise VersionParseError(f'invalid version: {string_version!r}')
         fields = match.groupdict()
         fields['base'] = tuple(map(int, fields['base'].split('.')))
         pre = fields['pre']

@@ -25,13 +25,15 @@ class ASDFPythonSpec(NamedTuple):
     version: str | None
 
     @classmethod
-    def from_string_spec(cls, string_spec: str) -> ASDFPythonSpec | None:
+    def from_string_spec(cls, string_spec: str) -> ASDFPythonSpec:
+        if not string_spec:
+            raise SpecParseError('invalid spec: empty string')
         is_cpython = string_spec[0].isdigit()
         if is_cpython:
             implementation = Implementation.CPYTHON
             match = CPYTHON_SPEC_REGEX.fullmatch(string_spec)
             if not match:
-                raise SpecParseError
+                raise SpecParseError(f'invalid spec: {string_spec!r}')
             version = match.group('version')
         else:
             implementation = Implementation.UNSUPPORTED
@@ -48,5 +50,7 @@ class ASDFPythonSpec(NamedTuple):
     def is_supported(self, *, raise_exception: bool = False) -> bool:
         supported = self.implementation == Implementation.CPYTHON
         if not supported and raise_exception:
-            raise UnsupportedImplementation
+            raise UnsupportedImplementation(
+                f'unsupported implementation: {self.string_spec!r} '
+                f'({UnsupportedImplementation.message})')
         return supported

@@ -226,3 +226,42 @@ def test_descriptors_on_class():
     assert Version.base is Version.__dict__['base']
     assert Version._hash is Version.__dict__['_hash']
     assert Version.__eq__ is Version.__dict__['__eq__']
+
+
+def test_parse_error_message_includes_version():
+    with pytest.raises(VersionParseError, match=r"^invalid version: '3\.x'$"):
+        Version.from_string_version('3.x')
+
+
+@pytest.mark.parametrize('string_version,base', [
+    ('10.0', (10, 0)),
+    ('10.1.2', (10, 1, 2)),
+    ('12.0a1', (12, 0)),
+    ('3.100.1000', (3, 100, 1000)),
+])
+def test_multi_digit_components(string_version, base):
+    version = Version.from_string_version(string_version)
+
+    assert version.base == base
+    assert str(version) == string_version
+
+
+def test_multi_digit_major_ordering():
+    v9 = Version.from_string_version('9.9.9')
+    v10 = Version.from_string_version('10.0')
+
+    assert v9 < v10
+    assert v9 not in Version.from_string_version('1.0')
+
+
+@pytest.mark.parametrize('attr', ['base', 'pre', 'dev'])
+def test_attributes_are_read_only(attr):
+    version = Version.from_string_version('3.13.0rc1')
+    original = getattr(version, attr)
+
+    with pytest.raises(AttributeError, match=f"^'{attr}' is read-only$"):
+        setattr(version, attr, 'changed')
+    with pytest.raises(AttributeError, match=f"^'{attr}' is read-only$"):
+        delattr(version, attr)
+
+    assert getattr(version, attr) == original

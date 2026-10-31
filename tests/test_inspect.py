@@ -12,7 +12,8 @@ class TestFindASDFPythonExecutable:
     @pytest.fixture(autouse=True)
     def setup(self, monkeypatch, tmp_path):
         self.asdf_root = tmp_path / 'asdf_root'
-        monkeypatch.setenv('ASDF_ROOT', str(self.asdf_root))
+        monkeypatch.setenv('ASDF_DATA_DIR', str(self.asdf_root))
+        monkeypatch.delenv('ASDF_ROOT', raising=False)
         self.versions_dir = self.asdf_root / 'installs/python'
         self.versions_dir.mkdir(parents=True)
 
@@ -49,9 +50,16 @@ class TestFindASDFPythonExecutable:
         with pytest.raises(TypeError, match='unexpected spec type'):
             find_asdf_python_executable(spec)
 
-    def test_invalid_spec(self):
+    @pytest.mark.parametrize('spec', ['', '3.x'])
+    def test_invalid_spec(self, spec):
         with pytest.raises(SpecParseError):
-            find_asdf_python_executable('3.x')
+            find_asdf_python_executable(spec)
+
+    def test_multi_digit_major(self):
+        self.prepare_versions('9.9.9', '10.0.1', '10.0.2', '10.1.0')
+
+        assert find_asdf_python_executable('10.0') == (
+            self.versions_dir / '10.0.2' / 'bin' / 'python')
 
     def test_no_versions_installed(self):
         assert find_asdf_python_executable('3.12') is None
