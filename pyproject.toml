@@ -33,6 +33,7 @@ Repository = 'https://github.com/lanshark/asdf-inspect'
 [dependency-groups]
 dev = [
     'pytest>=8',
+    'pytest-cov>=6',
     'flake8>=7',
     'isort>=6',
     'tox>=4.22',
@@ -51,6 +52,14 @@ known_tests = ['tests']
 [tool.pytest.ini_options]
 minversion = '8.0'
 testpaths = ['tests']
+
+[tool.coverage.run]
+source = ['asdf_inspect']
+branch = true
+
+[tool.coverage.report]
+show_missing = true
+fail_under = 100
 
 [tool.tox]
 requires = ['tox>=4.22', 'tox-uv>=1.11']
