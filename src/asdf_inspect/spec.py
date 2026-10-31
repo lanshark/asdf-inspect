@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import enum
 import re
-from typing import NamedTuple, Optional
+from typing import NamedTuple
 
 from .exceptions import SpecParseError, UnsupportedImplementation
 from .version import VERSION_PATTERN
@@ -22,10 +22,10 @@ class ASDFPythonSpec(NamedTuple):
     """Contains specification about a Python Interpreter"""
     string_spec: str
     implementation: Implementation
-    version: Optional[str]
+    version: str | None
 
     @classmethod
-    def from_string_spec(cls, string_spec: str) -> Optional[ASDFPythonSpec]:
+    def from_string_spec(cls, string_spec: str) -> ASDFPythonSpec | None:
         is_cpython = string_spec[0].isdigit()
         if is_cpython:
             implementation = Implementation.CPYTHON
